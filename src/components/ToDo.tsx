@@ -1,7 +1,7 @@
 import styled from 'styled-components';
-import { ToDoInterface, toDoState } from '../atoms';
+import { ToDoInterface, categoriesState, toDoState } from '../atoms';
 import { Icon } from './Icon';
-import { useRecoilState } from 'recoil';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 
 const ToDoItem = styled.li`
   display: flex;
@@ -27,21 +27,39 @@ const ButtonContainer = styled.div`
     color: ${(props) => props.theme.textColor};
     font-weight: 700;
     border: none;
-    cursor: pointer;
-
-    :hover {
-      background-color: ${(props) => props.theme.hoverButtonColor};
-    }
 
     :last-child {
       display: flex;
       font-size: 1.5rem;
     }
+
+    :disabled {
+      opacity: 0.5;
+    }
+
+    :not(:disabled):hover {
+      background-color: ${(props) => props.theme.hoverButtonColor};
+      cursor: pointer;
+    }
   }
 `;
 
 function ToDo({ id, text, category }: ToDoInterface) {
-  const [toDos, setToDos] = useRecoilState(toDoState);
+  const setToDos = useSetRecoilState(toDoState);
+  const categories = useRecoilValue(categoriesState);
+
+  const changeCategory = (selectedCategory: string) => {
+    setToDos((oldToDos) => {
+      const targetIndex = oldToDos.findIndex((oldToDo) => oldToDo.id === id);
+      const newToDo = { text, category: selectedCategory, id };
+
+      return [
+        ...oldToDos.slice(0, targetIndex),
+        newToDo,
+        ...oldToDos.slice(targetIndex + 1),
+      ];
+    });
+  };
 
   const deleteToDo = () => {
     setToDos((oldToDos) => oldToDos.filter((oldToDo) => oldToDo.id !== id));
@@ -51,9 +69,15 @@ function ToDo({ id, text, category }: ToDoInterface) {
     <ToDoItem>
       <span>{text}</span>
       <ButtonContainer>
-        <button>해야 할 일</button>
-        <button>하고 있는 일</button>
-        <button>끝낸 일</button>
+        {categories.map((currentCategory, index) => (
+          <button
+            key={index}
+            onClick={() => changeCategory(currentCategory)}
+            disabled={currentCategory === category}
+          >
+            {currentCategory}
+          </button>
+        ))}
         <button onClick={deleteToDo}>
           <Icon name="delete" />
         </button>
